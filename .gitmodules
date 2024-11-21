@@ -1,0 +1,6 @@
+[submodule "arduino"]
+	path = arduino
+	url = https://github.com/stm32duino/Arduino_Core_STM32/
+[submodule "Drivers/st7735"]
+	path = Drivers/st7735
+	url = https://github.com/STMicroelectronics/stm32-st7735

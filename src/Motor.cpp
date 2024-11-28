@@ -1,6 +1,52 @@
 #include <ulog.h>
 #include "Motor.h"
 
+#include <STM32FreeRTOS.h>
+
+void fuckPID(TimerHandle_t shit)
+{
+
+  auto motor = static_cast<Motor *>(pvTimerGetTimerID(shit));
+  if (!motor)
+  {
+    ULOG_ERROR("Fuck PID is called without a Motor pointer passed in");
+    return;
+  }
+  // An incredibly shitty PID implementation
+  static int32_t lastError = 0;
+  static int32_t lastLastError = 0;
+  static int32_t lastOutput = 0;
+
+  int32_t currentError = motor->targetFreq - motor->freqMeasured;
+  int32_t output = lastOutput + motor->PID_KP * (currentError - lastError) + motor->PID_KI * currentError + motor->PID_KD * (currentError - 2 * lastError + lastLastError);
+
+  if (output < motor->MIN_DUTY)
+    output = motor->MIN_DUTY;
+  else if (output > motor->MAX_DUTY)
+    output = motor->MAX_DUTY;
+  motor->setDuty(output);
+
+  lastOutput = output;
+  lastError = currentError;
+  lastLastError = lastError;
+
+#ifdef PID_TUNING
+  struct __attribute__((packed))
+  {
+    uint8_t header = 0x69;
+    uint32_t freq;
+    int32_t error;
+    int32_t output;
+    char shit[4] = {'s', 'h', 'i', 't'};
+  } pidStatus{
+      .freq = motor->freqMeasured,
+      .error = currentError,
+      .output = output,
+  };
+  Serial2.write(reinterpret_cast<char *>(&pidStatus), sizeof(pidStatus));
+#endif
+}
+
 Motor::Motor(uint8_t alarm_pin,
              uint8_t enable_pin,
              uint8_t direction_pin,
@@ -34,6 +80,9 @@ Motor::Motor(uint8_t alarm_pin,
 
   timerFreq = feedbackTimer->getTimerClkFreq() / PRESCALE_FACTOR;
   ULOG_DEBUG("Timer freq: %d Hz", timerFreq);
+  auto PIDTimer = xTimerCreate("PID", pdMS_TO_TICKS(PID_PERIOD), pdTRUE, static_cast<void *>(this), fuckPID);
+  xTimerStart(PIDTimer, 0);
+  ULOG_DEBUG("PID Timer started");
 }
 
 void Motor::setDirection(bool direction)
@@ -41,7 +90,7 @@ void Motor::setDirection(bool direction)
   digitalWrite(directionPin, direction);
 }
 
-void Motor::setSpeed(int32_t speed)
+void Motor::setSpeed(float speed)
 {
   if (speed < 0)
   {
@@ -53,7 +102,8 @@ void Motor::setSpeed(int32_t speed)
     setDirection(0);
   }
 
-  setDuty(speed);
+  targetFreq = speed * SPEED_SCALE;
+  // setDuty(speed);
 }
 
 void Motor::feedbackInputCallback()

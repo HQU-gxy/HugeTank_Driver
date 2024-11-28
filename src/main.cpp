@@ -2,22 +2,106 @@
 #include <ulog.h>
 #include <STM32FreeRTOS.h>
 #include <semphr.h>
+#include <timers.h>
+#include <TFT_eSPI.h>
+#include <vector>
 
 #include "Motor.h"
 #include "IMU.h"
 #include "config.h"
 
+std::vector<String> splitString(const String &str, char delimiter)
+{
+  std::vector<String> tokens;
+  String token;
+  for (int i = 0; i < str.length(); i++)
+  {
+    if (str[i] == delimiter)
+    {
+      if (token.length() > 0)
+      {
+        tokens.push_back(token);
+        token = "";
+      }
+    }
+    else
+    {
+      token += str[i];
+    }
+  }
+  if (token.length() > 0)
+  {
+    tokens.push_back(token);
+  }
+  return tokens;
+}
+
 void app_main(void *)
 {
+  static TFT_eSPI screen;
+  screen.init();
+  screen.setRotation(3);
+  screen.fillScreen(TFT_BLACK);
+  screen.setTextSize(2);
+  screen.setTextColor(TFT_RED, TFT_BLACK);
+
   Motor rightMotor(MOTOR_RIGHT_ALM_PIN, MOTOR_RIGHT_EN_PIN, MOTOR_RIGHT_DIR_PIN, MOTOR_RIGHT_FG, MOTOR_RIGHT_PWM);
-  Motor leftMotor(MOTOR_LEFT_ALM_PIN, MOTOR_LEFT_EN_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_FG, MOTOR_LEFT_PWM);
+  // Motor leftMotor(MOTOR_LEFT_ALM_PIN, MOTOR_LEFT_EN_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_FG, MOTOR_LEFT_PWM);
 
   rightMotor.enable();
-  leftMotor.enable();
+  // leftMotor.enable();
+
+  auto tm = xTimerCreate("show sec", pdMS_TO_TICKS(1000), true, (void *)233, [](TimerHandle_t)
+                         {static uint32_t shit = 0;
+                        screen.setCursor(10, 30);
+                        screen.print(shit++); });
+  xTimerStart(tm, 0);
+
+  String inputStr;
   while (1)
   {
-    ULOG_INFO("left frequency: %d", leftMotor.getInputFrequency());
-    vTaskDelay(1000);
+#ifdef PID_TUNING
+    struct __attribute__((packed)) PIDConfig
+    {
+      uint8_t header;
+      float kp;
+      float ki;
+      float kd;
+      char shit[4];
+    };
+
+    struct __attribute__((packed)) SpeedSet
+    {
+      uint8_t header;
+      float speed;
+      char shit[4];
+    };
+
+    if (Serial2.available())
+    {
+      char c = Serial2.read();
+      inputStr += c;
+      if (inputStr.endsWith("shit"))
+      {
+        if (inputStr[0] == 0x96)
+        {
+          if (inputStr.length() != sizeof(PIDConfig))
+            continue;
+          auto parsed = reinterpret_cast<const PIDConfig *>(inputStr.c_str());
+          rightMotor.setPID(parsed->kp, parsed->ki, parsed->kd);
+        }
+        else if (inputStr[0] == 0x97)
+        {
+          if (inputStr.length() != sizeof(SpeedSet))
+            continue;
+          auto parsed = reinterpret_cast<const SpeedSet *>(inputStr.c_str());
+          rightMotor.setSpeed(parsed->speed);
+        }
+        inputStr = "";
+      }
+    }
+#endif
+    vTaskDelay(50);
   }
 }
 
@@ -42,11 +126,15 @@ void setup()
     }
   };
   ulog_init();
+
+#ifndef PID_TUNING
   ulog_subscribe(my_console_logger, ULOG_DEBUG_LEVEL);
+#else
+  ulog_subscribe(my_console_logger, ULOG_ERROR_LEVEL);
+#endif
 
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
-
 
   ULOG_INFO("I'm fucking coming");
   xTaskCreate(app_main, "app_main", 1024, NULL, osPriorityNormal, NULL);

@@ -3,6 +3,8 @@
 
 #include <STM32FreeRTOS.h>
 
+#include "config.h"
+
 void fuckPID(TimerHandle_t shit)
 {
 
@@ -12,6 +14,7 @@ void fuckPID(TimerHandle_t shit)
     ULOG_ERROR("Fuck PID is called without a Motor pointer passed in");
     return;
   }
+
   // An incredibly shitty PID implementation
   static int32_t lastError = 0;
   static int32_t lastLastError = 0;
@@ -24,6 +27,9 @@ void fuckPID(TimerHandle_t shit)
     output = motor->MIN_DUTY;
   else if (output > motor->MAX_DUTY)
     output = motor->MAX_DUTY;
+
+  if (motor->targetFreq == 0)
+    output = 0;
   motor->setDuty(output);
 
   lastOutput = output;
@@ -85,11 +91,6 @@ Motor::Motor(uint8_t alarm_pin,
   ULOG_DEBUG("PID Timer started");
 }
 
-void Motor::setDirection(bool direction)
-{
-  digitalWrite(directionPin, direction);
-}
-
 void Motor::setSpeed(float speed)
 {
   if (speed < 0)
@@ -103,22 +104,17 @@ void Motor::setSpeed(float speed)
   }
 
   targetFreq = speed * SPEED_SCALE;
-  // setDuty(speed);
+  if (targetFreq < MIN_TARGET_FREQ)
+  {
+    targetFreq = 0;
+  }
 }
 
 void Motor::feedbackInputCallback()
 {
   currentCapture = feedbackTimer->getCaptureCompare(feedbackChannel);
-  /* frequency computation */
-  if (currentCapture > lastCapture)
-  {
-    freqMeasured = timerFreq / (currentCapture - lastCapture);
-  }
-  else if (currentCapture <= lastCapture)
-  {
-    // It's an overflow
-    freqMeasured = timerFreq / (OVERFLOW_VALUE + currentCapture - lastCapture);
-  }
+  freqMeasured = timerFreq / (OVERFLOW_VALUE * rolloverCompareCount + currentCapture - lastCapture);
+
   lastCapture = currentCapture;
   rolloverCompareCount = 0;
 }

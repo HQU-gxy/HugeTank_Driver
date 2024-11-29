@@ -22,14 +22,15 @@ private:
     bool direction = 0;                       // 0 for forward, 1 for backward
     uint32_t targetFreq = 0;                  // Target encoder frequency in Hz
     static constexpr uint8_t PID_PERIOD = 50; // Fuck PID every 50ms
-    static constexpr uint8_t MIN_DUTY = 5;
-    static constexpr uint8_t MAX_DUTY = 200;
+    static constexpr uint8_t MIN_DUTY = 10;
+    static constexpr uint8_t MAX_DUTY = 200;       // To avoid Flying away
+    static constexpr uint8_t MIN_TARGET_FREQ = 15; // Whether to park
 
     float PID_KP = 0.3;
-    float PID_KI = 0.1;
+    float PID_KI = 0.2;
     float PID_KD = 0.5;
 
-    static constexpr uint32_t SPEED_SCALE = 100; // Linear speed(m/s) to encoder output frequency(Hz)
+    static constexpr uint32_t SPEED_SCALE = 56; // Linear speed(m/s) to encoder output frequency(Hz)
 
     // For input capture
     static constexpr uint32_t OVERFLOW_VALUE = 0x10000;
@@ -74,13 +75,10 @@ public:
      * Set the direction signal
      * @param direction: direction signal value
      */
-    void setDirection(bool direction);
-
-    /**
-     * Set the target speed of the motor
-     * @param speed: target speed in m/s, positive for forward, negative for backward
-     */
-    void setSpeed(float speed);
+    inline void setDirection(bool direction)
+    {
+        digitalWrite(directionPin, direction);
+    }
 
     /**
      * Enable the ESC, making it fuckable
@@ -99,6 +97,12 @@ public:
     }
 
     /**
+     * Set the target speed of the motor
+     * @param speed: target speed in m/s, positive for forward, negative for backward
+     */
+    void setSpeed(float speed);
+
+    /**
      * Set the PID controller arguments
      * @param kp: Proportional gain
      * @param ki: Integral gain
@@ -113,7 +117,7 @@ public:
 
     /**
      * The PID implementation function
-     * 
+     *
      * Used in an OS timer, don't call it manually
      */
     friend void fuckPID(TimerHandle_t);

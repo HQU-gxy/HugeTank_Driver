@@ -34,3 +34,7 @@ constexpr uint8_t MOTOR_LEFT_EN_PIN = PA10;
 constexpr uint8_t MOTOR_LEFT_DIR_PIN = PA11;
 constexpr TimerCfg MOTOR_LEFT_FG = {PA12_ALT2, TIM16, 1};
 constexpr TimerCfg MOTOR_LEFT_PWM = {PA15, TIM2, 1};
+
+// IMU
+constexpr uint8_t BMI088_ACCEL_CS = PB1;
+constexpr uint8_t BMI088_GYRO_CS = PB0;

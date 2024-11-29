@@ -10,32 +10,6 @@
 #include "IMU.h"
 #include "config.h"
 
-std::vector<String> splitString(const String &str, char delimiter)
-{
-  std::vector<String> tokens;
-  String token;
-  for (int i = 0; i < str.length(); i++)
-  {
-    if (str[i] == delimiter)
-    {
-      if (token.length() > 0)
-      {
-        tokens.push_back(token);
-        token = "";
-      }
-    }
-    else
-    {
-      token += str[i];
-    }
-  }
-  if (token.length() > 0)
-  {
-    tokens.push_back(token);
-  }
-  return tokens;
-}
-
 void app_main(void *)
 {
   static TFT_eSPI screen;
@@ -51,13 +25,10 @@ void app_main(void *)
   rightMotor.enable();
   // leftMotor.enable();
 
-  auto tm = xTimerCreate("show sec", pdMS_TO_TICKS(1000), true, (void *)233, [](TimerHandle_t)
-                         {static uint32_t shit = 0;
-                        screen.setCursor(10, 30);
-                        screen.print(shit++); });
-  xTimerStart(tm, 0);
+  auto aliveLEDTimer = xTimerCreate("Alive", pdMS_TO_TICKS(1000), true, (void *)233, [](TimerHandle_t)
+                                    { digitalToggle(LED1_PIN); });
+  xTimerStart(aliveLEDTimer, 0);
 
-  String inputStr;
   while (1)
   {
 #ifdef PID_TUNING
@@ -77,6 +48,7 @@ void app_main(void *)
       char shit[4];
     };
 
+    static String inputStr;
     if (Serial2.available())
     {
       char c = Serial2.read();
@@ -100,6 +72,21 @@ void app_main(void *)
         inputStr = "";
       }
     }
+#endif
+#ifdef IMU_TEST
+    IMU::IMUData readData;
+    IMU::getIMUData(&readData);
+
+    struct __attribute__((packed))
+    {
+      uint8_t header = 0x11;
+      IMU::IMUData data;
+      char shit[4] = {'s', 'h', 'i', 't'};
+    } imuData = {
+        .data = readData,
+    };
+    Serial2.write(reinterpret_cast<char *>(&imuData), sizeof(imuData));
+
 #endif
     vTaskDelay(50);
   }
@@ -127,14 +114,30 @@ void setup()
   };
   ulog_init();
 
-#ifndef PID_TUNING
-  ulog_subscribe(my_console_logger, ULOG_DEBUG_LEVEL);
-#else
+#if defined(PID_TUNING) || defined(IMU_TEST)
+  // To reduce data tranmitted
   ulog_subscribe(my_console_logger, ULOG_ERROR_LEVEL);
+#else
+  ulog_subscribe(my_console_logger, ULOG_DEBUG_LEVEL);
 #endif
 
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
+
+  if (!IMU::begin())
+  {
+    while (1)
+    {
+      ULOG_ERROR("IMU initialization failed");
+      while (1)
+      {
+        digitalWrite(LED2_PIN, 1);
+        delay(100);
+        digitalWrite(LED2_PIN, 0);
+        delay(400);
+      }
+    }
+  }
 
   ULOG_INFO("I'm fucking coming");
   xTaskCreate(app_main, "app_main", 1024, NULL, osPriorityNormal, NULL);

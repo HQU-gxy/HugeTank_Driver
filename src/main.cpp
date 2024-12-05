@@ -5,10 +5,29 @@
 #include <timers.h>
 #include <TFT_eSPI.h>
 #include <vector>
+#include <utility>
 
 #include "Motor.h"
 #include "IMU.h"
 #include "config.h"
+
+/**
+ * @brief Convert the linear and angular speed of the car to the speed of the left and right motors
+ *
+ * @param linear Linear speed of the car in m/s
+ * @param angular Angular speed of the car in rad/s
+ *
+ * @return A pair of left and right motor speed in m/s
+ */
+std::pair<float, float> carSpeedToMotorSpeed(float linear, float angular)
+{
+  constexpr float WHEEL_DISTANCE = 0.55;
+
+  float leftSpeed = linear - angular * WHEEL_DISTANCE / 2;
+  float rightSpeed = linear + angular * WHEEL_DISTANCE / 2;
+
+  return {leftSpeed, rightSpeed};
+}
 
 void app_main(void *)
 {
@@ -20,12 +39,12 @@ void app_main(void *)
   screen.setTextColor(TFT_RED, TFT_BLACK);
 
   Motor rightMotor(MOTOR_RIGHT_ALM_PIN, MOTOR_RIGHT_EN_PIN, MOTOR_RIGHT_DIR_PIN, MOTOR_RIGHT_FG, MOTOR_RIGHT_PWM);
-  // Motor leftMotor(MOTOR_LEFT_ALM_PIN, MOTOR_LEFT_EN_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_FG, MOTOR_LEFT_PWM);
+  Motor leftMotor(MOTOR_LEFT_ALM_PIN, MOTOR_LEFT_EN_PIN, MOTOR_LEFT_DIR_PIN, MOTOR_LEFT_FG, MOTOR_LEFT_PWM);
 
   rightMotor.enable();
-  // leftMotor.enable();
+  leftMotor.enable();
 
-  auto aliveLEDTimer = xTimerCreate("Alive", pdMS_TO_TICKS(1000), true, (void *)233, [](TimerHandle_t)
+  auto aliveLEDTimer = xTimerCreate("Alive", pdMS_TO_TICKS(500), true, (void *)233, [](TimerHandle_t)
                                     { digitalToggle(LED1_PIN); });
   xTimerStart(aliveLEDTimer, 0);
 
@@ -94,10 +113,6 @@ void app_main(void *)
 
 void setup()
 {
-  Serial1.setTx(UART1_TX_PIN);
-  Serial1.setRx(UART1_RX_PIN);
-  Serial1.begin(115200);
-
   Serial2.setTx(UART2_TX_PIN);
   Serial2.setRx(UART2_RX_PIN);
   Serial2.begin(115200);
@@ -121,6 +136,8 @@ void setup()
   ulog_subscribe(my_console_logger, ULOG_DEBUG_LEVEL);
 #endif
 
+  vTaskStartScheduler();
+
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
 
@@ -139,9 +156,12 @@ void setup()
     }
   }
 
+  // Press the button to reset the IMU offset
+  attachInterrupt(BUTTON_PIN, []
+                  { IMU::resetOffset(); }, FALLING);
+
   ULOG_INFO("I'm fucking coming");
   xTaskCreate(app_main, "app_main", 1024, NULL, osPriorityNormal, NULL);
-  vTaskStartScheduler();
 }
 
 void loop() { /* Never fuck into this*/ }

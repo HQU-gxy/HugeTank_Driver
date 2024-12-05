@@ -10,6 +10,7 @@ struct TimerCfg
 
 constexpr uint8_t LED1_PIN = PA0;
 constexpr uint8_t LED2_PIN = PA1;
+constexpr uint8_t BUTTON_PIN = PA4;
 
 // Uplink UART
 constexpr uint8_t UART1_TX_PIN = PB6;

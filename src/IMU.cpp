@@ -17,12 +17,19 @@ namespace IMU
     constexpr uint8_t SAMPLE_PERIOD = 10; // Fuck IMU every 10ms
     IMUData collectedData[AVR_SAMPLES_COUNT]{IMUData{0}};
 
+    IMUData imuOffset;
     void collectData(TimerHandle_t)
     {
         if (!accel.getDrdyStatus())
+        {
+            ULOG_WARNING("Accel data not ready");
             return;
+        }
         if (!gyro.getDrdyStatus())
+        {
+            ULOG_WARNING("Gyro data not ready");
             return;
+        }
 
         accel.readSensor();
         gyro.readSensor();
@@ -59,10 +66,13 @@ namespace IMU
         static auto collectTimer = xTimerCreate("Read IMU", pdMS_TO_TICKS(SAMPLE_PERIOD), pdTRUE, (void *)114514, collectData);
         xTimerStart(collectTimer, 0);
         ULOG_INFO("IMU collection started");
+        vTaskDelay(300);
+        resetOffset();
+
         return true;
     }
 
-    void getIMUData(IMUData *data)
+    void getIMUDataRaw(IMUData *data)
     {
         float32_t temp[6]{0};
         for (auto &p : collectedData)
@@ -71,4 +81,18 @@ namespace IMU
         }
         arm_scale_f32(temp, 1.0f / AVR_SAMPLES_COUNT, reinterpret_cast<float32_t *>(data), 6);
     }
+
+    void resetOffset()
+    {
+        getIMUDataRaw(&imuOffset);
+        imuOffset.accelZ += 9.81f;
+    }
+
+    void getIMUData(IMUData *data)
+    {
+        IMUData raw;
+        getIMUDataRaw(&raw);
+        arm_sub_f32(reinterpret_cast<float32_t *>(&raw), reinterpret_cast<float32_t *>(&imuOffset), reinterpret_cast<float32_t *>(data), 6);
+    }
+
 } // namespace IMU

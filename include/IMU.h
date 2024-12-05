@@ -15,4 +15,5 @@ namespace IMU
     bool begin();
 
     void getIMUData(IMUData *data);
+    void resetOffset();
 } // namespace IMU

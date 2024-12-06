@@ -68,7 +68,6 @@ void app_main(void *)
     IMU::IMUData imuData;
     IMU::getIMUData(&imuData);
     auto [linear, angular] = motorSpeedToCarSpeed(leftMotor.getSpeed(), rightMotor.getSpeed());
-    ULOG_DEBUG("Get status: linear: %f, angular: %f, accel: %f, %f, %f", linear, angular, imuData.accelX, imuData.accelY, imuData.accelZ);
     return {linear, angular, imuData};
   };
   UpLink::setGetStatusFunc(getStatus);
@@ -78,10 +77,14 @@ void app_main(void *)
     auto [leftSpeed, rightSpeed] = carSpeedToMotorSpeed(linear, angular);
     leftMotor.setSpeed(leftSpeed);
     rightMotor.setSpeed(rightSpeed);
-    ULOG_DEBUG("Set speed: %f, %f", leftSpeed, rightSpeed);
+
+    screen.setCursor(0, 10);
+    screen.println("Linear: ");
+    screen.println(linear);
+    screen.println("Angular: ");
+    screen.print(angular);
   };
   UpLink::setOnCmdCallback(onCommand);
-
   UpLink::begin();
 
   auto aliveLEDTimer = xTimerCreate("Alive", pdMS_TO_TICKS(500), true, (void *)233, [](TimerHandle_t)
@@ -147,12 +150,7 @@ void app_main(void *)
     Serial2.write(reinterpret_cast<char *>(&imuData), sizeof(imuData));
 
 #endif
-    for (auto x = 10; x < 150; x += 5)
-    {
-      screen.fillScreen(TFT_BLACK);
-      screen.fillCircle(x, 40, 10, TFT_WHITE);
-      vTaskDelay(50);
-    }
+    vTaskDelay(50);
   }
 }
 
@@ -163,7 +161,7 @@ void setup()
   Serial2.begin(115200);
 
   auto logger = [](ulog_level_t severity, char *msg)
-  { Serial2.printf("%d [%s]: %s\n", millis(), ulog_level_name(severity), msg); };
+  { Serial2.printf("%d [%s]: %s\n", xTaskGetTickCount(), ulog_level_name(severity), msg); };
 
   ulog_init();
 #if defined(PID_TUNING) || defined(IMU_TEST)

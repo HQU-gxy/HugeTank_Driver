@@ -13,8 +13,8 @@ namespace IMU
     static Bmi088Accel accel(SPI, BMI088_ACCEL_CS);
     static Bmi088Gyro gyro(SPI, BMI088_GYRO_CS);
 
-    constexpr uint8_t AVR_SAMPLES_COUNT = 8;
-    constexpr uint8_t SAMPLE_PERIOD = 20; // Fuck IMU every 20ms
+    constexpr uint8_t AVR_SAMPLES_COUNT = 5;
+    constexpr uint16_t SAMPLE_PERIOD = 20; // Fuck IMU every 20ms
     IMUData collectedData[AVR_SAMPLES_COUNT]{IMUData{0}};
 
     IMUData imuOffset;
@@ -22,12 +22,7 @@ namespace IMU
     {
         if (!accel.getDrdyStatus())
         {
-            ULOG_WARNING("Accel data not ready");
-            return;
-        }
-        if (!gyro.getDrdyStatus())
-        {
-            ULOG_WARNING("Gyro data not ready");
+            ULOG_WARNING("IMU data not ready");
             return;
         }
 

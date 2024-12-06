@@ -107,16 +107,12 @@ namespace UpLink
       float currentLinear;  // Linear speed in m/s
       float currentAngular; // Angular speed in rad/s
       // Accel in m/s^2
-      float accX;
-      float accY;
-      float accZ;
+      IMU::IMUData imu;
       uint8_t checksum;
     } status{
         .currentLinear = currLinear,
         .currentAngular = currAngular,
-        .accX = imuData.accelX,
-        .accY = imuData.accelY,
-        .accZ = imuData.accelZ,
+        .imu = imuData,
     };
     auto bytes = reinterpret_cast<uint8_t *>(&status);
     uint8_t sum;
@@ -144,17 +140,17 @@ namespace UpLink
       }
 
       char buf[16];
-      Serial1.readBytes(buf, 11);
+      Serial1.readBytes(buf, sizeof(UpLinkCommand));
       auto parsed = reinterpret_cast<const UpLinkCommand *>(buf);
-      uint8_t sum;
-      for (uint8_t i = 0; i < 9; i++)
+      uint8_t sum = 0;
+      for (uint8_t i = 0; i < sizeof(UpLinkCommand) - 1; i++)
       {
         sum ^= buf[i];
       }
 
-      if (sum == parsed->checksum)
+      if (sum != parsed->checksum)
       {
-        ULOG_ERROR("UpLink command checksum error");
+        ULOG_ERROR("UpLink command checksum error: %x", sum);
         continue;
       }
       // targetSpeed.first = parsed->targetLinear;

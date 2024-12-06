@@ -13,6 +13,10 @@ namespace UpLink
 
   static onUpLinkCommandCB onCmdCB;
   static getStatusFunc getStatus;
+
+  constexpr uint8_t SEND_STATUS_PERIOD = 50; // ms
+  constexpr uint8_t CHECK_CMD_PERIOD = 20;   // ms
+
   // Older wheeltec protocol
   /*
   struct __attribute__((packed)) UpLinkCommand
@@ -128,8 +132,8 @@ namespace UpLink
   {
     while (1)
     {
-      vTaskDelay(pdMS_TO_TICKS(20));
-      
+      vTaskDelay(pdMS_TO_TICKS(CHECK_CMD_PERIOD));
+
       if (!Serial1.available())
         continue;
 
@@ -168,7 +172,7 @@ namespace UpLink
     Serial1.setRx(UART1_RX_PIN);
     Serial1.setTimeout(20);
     Serial1.begin(115200);
-    auto sendStatTimer = xTimerCreate("Send status", pdMS_TO_TICKS(50), true, (void *)69, sendStat);
+    auto sendStatTimer = xTimerCreate("Send status", pdMS_TO_TICKS(SEND_STATUS_PERIOD), true, (void *)69, sendStat);
     xTimerStart(sendStatTimer, 0);
     xTaskCreate(readCmdTask, "Read command", 1024, nullptr, osPriorityAboveNormal, nullptr);
   }

@@ -14,7 +14,7 @@ namespace IMU
     static Bmi088Gyro gyro(SPI, BMI088_GYRO_CS);
 
     constexpr uint8_t AVR_SAMPLES_COUNT = 8;
-    constexpr uint8_t SAMPLE_PERIOD = 10; // Fuck IMU every 10ms
+    constexpr uint8_t SAMPLE_PERIOD = 20; // Fuck IMU every 20ms
     IMUData collectedData[AVR_SAMPLES_COUNT]{IMUData{0}};
 
     IMUData imuOffset;

@@ -40,7 +40,8 @@ private:
     uint32_t rolloverCompareCount = 0;
 
     /**
-     * Set the duty cycle of the PWM signal
+     * @brief Set the duty cycle of the PWM signal
+     * 
      * @param duty: duty cycle between 0 and 255
      */
     inline void setDuty(uint8_t duty)
@@ -49,7 +50,8 @@ private:
     }
 
     /**
-     * Get the encoder input frequency
+     * @brief Get the encoder input frequency
+     * 
      * @return the frequency measured
      */
     inline uint32_t getInputFrequency()
@@ -58,7 +60,7 @@ private:
     }
 
     /**
-     * Callback function for the input capture interrupt
+     * @brief Callback function for the input capture interrupt
      */
     void feedbackInputCallback();
 
@@ -72,7 +74,8 @@ public:
     ~Motor();
 
     /**
-     * Set the direction signal
+     * @brief Set the direction signal
+     * 
      * @param direction: direction signal value
      */
     inline void setDirection(bool direction)
@@ -81,7 +84,7 @@ public:
     }
 
     /**
-     * Enable the ESC, making it fuckable
+     * @brief Enable the ESC, making it fuckable
      */
     inline void enable()
     {
@@ -89,7 +92,7 @@ public:
     }
 
     /**
-     * Disable the ESC, unpower the motor
+     * @brief Disable the ESC, unpower the motor
      */
     inline void disable()
     {
@@ -97,13 +100,15 @@ public:
     }
 
     /**
-     * Set the target speed of the motor
+     * @brief Set the target speed of the motor
+     * 
      * @param speed: target speed in m/s, positive for forward, negative for backward
      */
     void setSpeed(float speed);
 
     /**
-     * Set the PID controller arguments
+     * @brief Set the PID controller arguments
+     * 
      * @param kp: Proportional gain
      * @param ki: Integral gain
      * @param kd: Derivative gain
@@ -116,7 +121,7 @@ public:
     }
 
     /**
-     * The PID implementation function
+     * @brief The PID implementation function
      *
      * Used in an OS timer, don't call it manually
      */

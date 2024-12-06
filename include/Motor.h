@@ -41,7 +41,7 @@ private:
 
     /**
      * @brief Set the duty cycle of the PWM signal
-     * 
+     *
      * @param duty: duty cycle between 0 and 255
      */
     inline void setDuty(uint8_t duty)
@@ -51,7 +51,7 @@ private:
 
     /**
      * @brief Get the encoder input frequency
-     * 
+     *
      * @return the frequency measured
      */
     inline uint32_t getInputFrequency()
@@ -75,7 +75,7 @@ public:
 
     /**
      * @brief Set the direction signal
-     * 
+     *
      * @param direction: direction signal value
      */
     inline void setDirection(bool direction)
@@ -101,14 +101,14 @@ public:
 
     /**
      * @brief Set the target speed of the motor
-     * 
+     *
      * @param speed: target speed in m/s, positive for forward, negative for backward
      */
     void setSpeed(float speed);
 
     /**
      * @brief Set the PID controller arguments
-     * 
+     *
      * @param kp: Proportional gain
      * @param ki: Integral gain
      * @param kd: Derivative gain
@@ -118,6 +118,11 @@ public:
         PID_KP = kp;
         PID_KI = ki;
         PID_KD = kd;
+    }
+
+    inline float getSpeed()
+    {
+        return static_cast<float>(freqMeasured) / SPEED_SCALE;
     }
 
     /**

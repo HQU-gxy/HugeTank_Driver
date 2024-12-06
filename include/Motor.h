@@ -100,13 +100,6 @@ public:
     }
 
     /**
-     * @brief Set the target speed of the motor
-     *
-     * @param speed: target speed in m/s, positive for forward, negative for backward
-     */
-    void setSpeed(float speed);
-
-    /**
      * @brief Set the PID controller arguments
      *
      * @param kp: Proportional gain
@@ -124,6 +117,13 @@ public:
     {
         return static_cast<float>(freqMeasured) / SPEED_SCALE;
     }
+
+    /**
+     * @brief Set the target speed of the motor
+     *
+     * @param speed: target speed in m/s, positive for forward, negative for backward
+     */
+    void setSpeed(float speed);
 
     /**
      * @brief The PID implementation function

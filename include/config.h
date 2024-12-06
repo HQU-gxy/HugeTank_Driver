@@ -39,3 +39,5 @@ constexpr TimerCfg MOTOR_LEFT_PWM = {PA15, TIM2, 1};
 // IMU
 constexpr uint8_t BMI088_ACCEL_CS = PB1;
 constexpr uint8_t BMI088_GYRO_CS = PB0;
+
+constexpr float WHEEL_DISTANCE = 0.55;

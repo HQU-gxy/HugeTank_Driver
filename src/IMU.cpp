@@ -66,8 +66,6 @@ namespace IMU
         static auto collectTimer = xTimerCreate("Read IMU", pdMS_TO_TICKS(SAMPLE_PERIOD), pdTRUE, (void *)114514, collectData);
         xTimerStart(collectTimer, 0);
         ULOG_INFO("IMU collection started");
-        vTaskDelay(300);
-        resetOffset();
 
         return true;
     }

@@ -78,6 +78,7 @@ void app_main(void *)
     leftMotor.setSpeed(leftSpeed);
     rightMotor.setSpeed(rightSpeed);
 
+    screen.fillScreen(TFT_BLACK);
     screen.setCursor(0, 10);
     screen.println("Linear: ");
     screen.println(linear);
@@ -90,6 +91,9 @@ void app_main(void *)
   auto aliveLEDTimer = xTimerCreate("Alive", pdMS_TO_TICKS(500), true, (void *)233, [](TimerHandle_t)
                                     { digitalToggle(LED1_PIN); });
   xTimerStart(aliveLEDTimer, 0);
+
+  screen.setCursor(0, 0);
+  screen.println("I'm fucking coming");
 
   while (1)
   {

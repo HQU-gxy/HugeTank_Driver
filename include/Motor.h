@@ -78,9 +78,10 @@ public:
      *
      * @param direction: direction signal value
      */
-    inline void setDirection(bool direction)
+    inline void setDirection(bool dir)
     {
-        digitalWrite(directionPin, direction);
+        direction = dir;
+        digitalWrite(directionPin, dir);
     }
 
     /**
@@ -115,7 +116,10 @@ public:
 
     inline float getSpeed()
     {
-        return static_cast<float>(freqMeasured) / SPEED_SCALE;
+        auto spd = static_cast<float>(freqMeasured) / SPEED_SCALE;
+        if (direction)
+            spd = -spd;
+        return spd;
     }
 
     /**

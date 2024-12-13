@@ -85,7 +85,7 @@ namespace UpLink
 
   struct __attribute__((packed)) UpLinkCommand
   {
-    uint8_t header;
+    uint8_t header;      // Should be 0x7b
     float targetLinear;  // Linear speed in m/s
     float targetAngular; // Angular speed in rad/s
     uint8_t checksum;

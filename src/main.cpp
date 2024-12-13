@@ -6,6 +6,7 @@
 #include <TFT_eSPI.h>
 #include <vector>
 #include <utility>
+#include <sbus.h>
 
 #include "Motor.h"
 #include "IMU.h"
@@ -50,7 +51,6 @@ void app_main(void *)
   screen.init();
   screen.setRotation(3);
   screen.fillScreen(TFT_BLACK);
-  screen.setTextSize(2);
   screen.setTextColor(TFT_RED, TFT_BLACK);
 
   Motor rightMotor(MOTOR_RIGHT_ALM_PIN, MOTOR_RIGHT_EN_PIN, MOTOR_RIGHT_DIR_PIN, MOTOR_RIGHT_FG, MOTOR_RIGHT_PWM);
@@ -63,6 +63,13 @@ void app_main(void *)
   vTaskDelay(pdMS_TO_TICKS(300));
   IMU::resetOffset();
 
+  Serial3.setRx(UART3_RX_PIN);
+  Serial3.setTx(UART3_TX_PIN);
+  bfs::SbusRx sbus(&Serial3);
+  sbus.Begin();
+
+  std::pair<float, float> upLinkTargetSpeed = {0, 0}; // Linear and angular speed from up-link in m/s and rad/s
+
   auto getStatus = [&leftMotor, &rightMotor]() -> std::tuple<float, float, IMU::IMUData>
   {
     IMU::IMUData imuData;
@@ -72,18 +79,9 @@ void app_main(void *)
   };
   UpLink::setGetStatusFunc(getStatus);
 
-  auto onCommand = [&leftMotor, &rightMotor](float linear, float angular)
+  auto onCommand = [&upLinkTargetSpeed](float linear, float angular)
   {
-    auto [leftSpeed, rightSpeed] = carSpeedToMotorSpeed(linear, angular);
-    leftMotor.setSpeed(leftSpeed);
-    rightMotor.setSpeed(rightSpeed);
-
-    screen.fillScreen(TFT_BLACK);
-    screen.setCursor(0, 10);
-    screen.println("Linear: ");
-    screen.println(linear);
-    screen.println("Angular: ");
-    screen.print(angular);
+    upLinkTargetSpeed = {linear, angular};
   };
   UpLink::setOnCmdCallback(onCommand);
   UpLink::begin();
@@ -93,7 +91,7 @@ void app_main(void *)
   xTimerStart(aliveLEDTimer, 0);
 
   screen.setCursor(0, 0);
-  screen.println("I'm fucking coming");
+  screen.print("Mode: UPLINK");
 
   while (1)
   {
@@ -153,6 +151,70 @@ void app_main(void *)
     };
     Serial2.write(reinterpret_cast<char *>(&imuData), sizeof(imuData));
 
+#endif
+
+#if (!defined(IMU_TEST)) && (!defined(PID_TUNING)) // Normally working
+
+    screen.fillScreen(TFT_BLACK);
+    screen.setCursor(0, 0);
+    screen.print("Mode: ");
+
+    float targetLinear, targetAngular;
+    static uint8_t noDataCnt = 0;
+
+    if (!sbus.Read())
+    {
+      if (noDataCnt < 10)
+        noDataCnt++;
+      else // Switch to uplink if there's no data from sbus for long
+      {
+        screen.print("Uplink");
+        targetLinear = upLinkTargetSpeed.first;
+        targetAngular = upLinkTargetSpeed.second;
+      }
+    }
+    else
+    {
+      // Roll: 0, Throttle: 1, Pitch: 2, Yaw: 3, *Mode*: 6
+      noDataCnt = 0;
+      auto sbusData = sbus.data();
+      if (sbusData.ch[6] < 600) // Stop
+      {
+        screen.print("Stop");
+        targetLinear = targetAngular = 0;
+      }
+      else if (sbusData.ch[6] < 1400) // Uplink
+      {
+        screen.print("Uplink");
+        targetLinear = upLinkTargetSpeed.first;
+        targetAngular = upLinkTargetSpeed.second;
+      }
+      else // Sbus
+      {
+        screen.print("SBus");
+        if (sbusData.ch[2] > 1400) // Forward
+          targetLinear = static_cast<float>(2000 - sbusData.ch[1]) / 800;
+        else if (sbusData.ch[2] > 600) // Dead zone
+          targetLinear = 0;
+        else // Backward
+          targetLinear = static_cast<float>(sbusData.ch[1] - 2000) / 800;
+
+        if (sbusData.ch[0] > 1300 || sbusData.ch[0] < 700) // Turn
+          targetAngular = static_cast<float>(1000 - sbusData.ch[0]) / 400;
+        else
+          targetAngular = 0;
+      }
+    }
+
+    auto [leftSpeed, rightSpeed] = carSpeedToMotorSpeed(targetLinear, targetAngular);
+    leftMotor.setSpeed(leftSpeed);
+    rightMotor.setSpeed(rightSpeed);
+
+    screen.setCursor(0, 30);
+    screen.println("Linear: ");
+    screen.println(targetLinear);
+    screen.println("Angular: ");
+    screen.print(targetAngular);
 #endif
     vTaskDelay(50);
   }

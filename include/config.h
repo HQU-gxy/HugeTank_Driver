@@ -21,6 +21,7 @@ constexpr uint8_t UART2_TX_PIN = PA2;
 constexpr uint8_t UART2_RX_PIN = PA3;
 
 // SBUS UART
+constexpr uint8_t UART3_TX_PIN = PB10; // Useless but still need to define
 constexpr uint8_t UART3_RX_PIN = PB11;
 
 // ESCs
@@ -40,4 +41,5 @@ constexpr TimerCfg MOTOR_LEFT_PWM = {PA15, TIM2, 1};
 constexpr uint8_t BMI088_ACCEL_CS = PB1;
 constexpr uint8_t BMI088_GYRO_CS = PB0;
 
-constexpr float WHEEL_DISTANCE = 0.55;
+
+constexpr float WHEEL_DISTANCE = 0.55; // Distance between the two wheels in meters

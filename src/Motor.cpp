@@ -93,15 +93,16 @@ Motor::Motor(uint8_t alarm_pin,
 
 void Motor::setSpeed(float speed)
 {
-  if (speed < 0)
+  if (speed < 0) // Backward
   {
     setDirection(1);
     speed = -speed;
   }
-  else
+  else if (speed > 0) // Forward
   {
     setDirection(0);
   }
+  // Don't change direction if speed is 0
 
   targetFreq = speed * SPEED_SCALE;
   if (targetFreq < MIN_TARGET_FREQ)

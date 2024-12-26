@@ -16,12 +16,11 @@ void fuckPID(TimerHandle_t shit)
   }
 
   // An incredibly shitty PID implementation
-  static int32_t lastError = 0;
-  static int32_t lastLastError = 0;
-  static int32_t lastOutput = 0;
 
   int32_t currentError = motor->targetFreq - motor->freqMeasured;
-  int32_t output = lastOutput + motor->PID_KP * (currentError - lastError) + motor->PID_KI * currentError + motor->PID_KD * (currentError - 2 * lastError + lastLastError);
+  int32_t output = motor->lastOutput + motor->PID_KP * (currentError - motor->lastError) +
+                   motor->PID_KI * currentError +
+                   motor->PID_KD * (currentError - 2 * motor->lastError + motor->lastLastError);
 
   if (output < motor->MIN_DUTY)
     output = motor->MIN_DUTY;
@@ -32,9 +31,9 @@ void fuckPID(TimerHandle_t shit)
     output = 0;
   motor->setDuty(output);
 
-  lastOutput = output;
-  lastError = currentError;
-  lastLastError = lastError;
+  motor->lastOutput = output;
+  motor->lastError = currentError;
+  motor->lastLastError = motor->lastError;
 
 #ifdef PID_TUNING
   struct __attribute__((packed))

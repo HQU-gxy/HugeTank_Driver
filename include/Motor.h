@@ -29,6 +29,9 @@ private:
     float PID_KP = 0.3;
     float PID_KI = 0.2;
     float PID_KD = 0.5;
+    int32_t lastError = 0;
+    int32_t lastLastError = 0;
+    int32_t lastOutput = 0;
 
     static constexpr uint32_t SPEED_SCALE = 56; // Linear speed(m/s) to encoder output frequency(Hz)
 
